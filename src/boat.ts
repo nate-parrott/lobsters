@@ -12,7 +12,7 @@ export function createBoatMesh(): THREE.Group {
   const group = new THREE.Group();
 
   const loader = new GLTFLoader();
-  loader.load('/boat.glb', (gltf) => {
+  loader.load(`${import.meta.env.BASE_URL}boat.glb`, (gltf) => {
     const model = gltf.scene;
     model.rotation.y = Math.PI; // Flip 180 degrees
     model.traverse((child) => {

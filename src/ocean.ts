@@ -7,7 +7,7 @@ export function createOcean(): THREE.Mesh {
   const geometry = new THREE.PlaneGeometry(OCEAN_SIZE, OCEAN_SIZE, 64, 64);
 
   const textureLoader = new THREE.TextureLoader();
-  const waterTexture = textureLoader.load('/watertile.jpg');
+  const waterTexture = textureLoader.load(`${import.meta.env.BASE_URL}watertile.jpg`);
   waterTexture.wrapS = THREE.RepeatWrapping;
   waterTexture.wrapT = THREE.RepeatWrapping;
   waterTexture.repeat.set(TILE_REPEAT, TILE_REPEAT);

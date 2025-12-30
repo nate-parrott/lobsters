@@ -16,7 +16,7 @@ export function createIsland(): IslandData {
 
   const colliderPromise = new Promise<IslandCollider>((resolve) => {
     const loader = new GLTFLoader();
-    loader.load('/island1.glb', (gltf) => {
+    loader.load(`${import.meta.env.BASE_URL}island1.glb`, (gltf) => {
       const model = gltf.scene;
       let hitPolygon: Vec2[] = [];
 
