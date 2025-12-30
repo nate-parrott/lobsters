@@ -7,6 +7,9 @@ export function isMobile(): boolean {
   return md.mobile() !== null || md.tablet() !== null;
 }
 
+// Tweak this to adjust joystick sensitivity (lower = less sensitive)
+const JOYSTICK_SENSITIVITY = 1;
+
 export class InputManager {
   private keys: Set<string> = new Set();
   private joystickInput: { forward: number; turn: number } = { forward: 0, turn: 0 };
@@ -50,17 +53,17 @@ export class InputManager {
     this.joystick = nipplejs.create({
       zone,
       mode: 'static',
-      position: { left: '75px', bottom: '75px' },
+      position: { left: '120px', bottom: '120px' },
       color: 'white',
-      size: 120,
+      size: 150,
     });
 
     this.joystick.on('move', (_evt, data) => {
       if (data.vector) {
         // Nipple gives x/y, we map to forward/turn
-        // y is forward/back, x is turn
-        this.joystickInput.forward = data.vector.y;
-        this.joystickInput.turn = data.vector.x;
+        // y is forward/back, x is turn (inverted)
+        this.joystickInput.forward = data.vector.y * JOYSTICK_SENSITIVITY;
+        this.joystickInput.turn = -data.vector.x * JOYSTICK_SENSITIVITY;
       }
     });
 
