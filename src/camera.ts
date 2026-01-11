@@ -1,15 +1,16 @@
 import * as THREE from 'three';
 import { GameState } from './types';
 
-const CAMERA_HEIGHT = 18;
-const CAMERA_DISTANCE = 5;  // Small offset behind for ~80% top-down
-const CAMERA_LOOK_AHEAD = 8;
+const CAMERA_HEIGHT = 12;
+const CAMERA_DISTANCE = 8  // Small offset behind for ~80% top-down
+const CAMERA_LOOK_AHEAD = 4;
 const CAMERA_SMOOTHING = 0.05;
 
 // Cab view constants
 const CAB_HEIGHT = 2.5;
-const CAB_FORWARD_OFFSET = -1.0; // Slightly back from center
+const CAB_FORWARD_OFFSET = -3; // Slightly back from center
 const CAB_LOOK_DISTANCE = 20;
+const CAB_VIEW_SMOOTHING = 0.05;
 
 export type ViewMode = 'overhead' | 'cab';
 
@@ -89,7 +90,8 @@ export function updateCamera(
   }
 
   // Smooth interpolation
-  const smoothFactor = 1 - Math.pow(1 - CAMERA_SMOOTHING, dt * 60);
+  const smoothingFactor = cameraState.viewMode === 'cab' ? CAB_VIEW_SMOOTHING : CAMERA_SMOOTHING;
+  const smoothFactor = 1 - Math.pow(1 - smoothingFactor, dt * 60);
 
   cameraState.currentPosition.lerp(targetPosition, smoothFactor);
   cameraState.currentLookAt.lerp(targetLookAt, smoothFactor);

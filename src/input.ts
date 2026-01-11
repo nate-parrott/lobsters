@@ -16,16 +16,12 @@ export class InputManager {
   private joystick: JoystickManager | null = null;
   private mobile: boolean;
 
-  constructor() {
+  constructor(joystickZone?: HTMLElement) {
     this.mobile = isMobile();
     this.setupKeyboard();
 
-    if (this.mobile) {
-      this.setupJoystick();
-    } else {
-      // Hide joystick zone on desktop
-      const zone = document.getElementById('joystick-zone');
-      if (zone) zone.style.display = 'none';
+    if (this.mobile && joystickZone) {
+      this.setupJoystick(joystickZone);
     }
   }
 
@@ -46,14 +42,11 @@ export class InputManager {
     });
   }
 
-  private setupJoystick(): void {
-    const zone = document.getElementById('joystick-zone');
-    if (!zone) return;
-
+  private setupJoystick(zone: HTMLElement): void {
     this.joystick = nipplejs.create({
       zone,
       mode: 'static',
-      position: { left: '120px', bottom: '120px' },
+      position: { left: '75px', top: '75px' },
       color: 'white',
       size: 150,
     });

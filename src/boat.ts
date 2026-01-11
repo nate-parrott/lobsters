@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GameState, InputState, Vec2 } from './types';
+import { lerp } from 'three/src/math/MathUtils.js';
 
 const ACCELERATION = 8;
-const MAX_SPEED = 12;
+const MAX_SPEED = 14;
 const DRAG = 0.98;
-const TURN_SPEED = 2.5;
+const TURN_SPEED = 3;
 const TURN_DRAG = 0.92;
 
 export function createBoatMesh(): THREE.Group {
@@ -18,7 +19,7 @@ export function createBoatMesh(): THREE.Group {
     model.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true;
-        child.receiveShadow = true;
+        // child.receiveShadow = true;
       }
     });
     group.add(model);
@@ -34,7 +35,7 @@ export function updateBoatPhysics(
 ): void {
   // Apply turning
   state.angularVelocity += input.turn * TURN_SPEED * dt;
-  state.angularVelocity *= TURN_DRAG;
+  state.angularVelocity *= lerp(1, TURN_DRAG, dt / (1.0 / 60));
   state.heading += state.angularVelocity * dt;
 
   // Calculate forward direction
@@ -65,8 +66,8 @@ export function updateBoatPhysics(
 export function getBoatBob(time: number, velocity: Vec2): number {
   const speed = Math.sqrt(velocity.x ** 2 + velocity.z ** 2);
   const baseWave = Math.sin(time * 2) * 0.15;
-  const speedWave = Math.sin(time * 4) * 0.05 * Math.min(speed / MAX_SPEED, 1);
-  return 0.3 + baseWave + speedWave; // Lift boat slightly higher
+  const speedWave = Math.sin(time * 4) * 0.1 * Math.min(speed / MAX_SPEED, 1);
+  return 0.4 + baseWave + speedWave; // Lift boat slightly higher
 }
 
 export function getBoatRoll(time: number, angularVelocity: number): number {
@@ -90,7 +91,7 @@ export function updateBoatMesh(
   mesh.position.y = getBoatBob(time, state.velocity);
 
   // Apply rotations with Y (heading) last so roll/pitch are in local space
-  mesh.rotation.order = 'ZXY';
+  mesh.rotation.order = 'YZX';
   mesh.rotation.y = state.heading;
   mesh.rotation.z = getBoatRoll(time, state.angularVelocity);
   mesh.rotation.x = getBoatPitch(state.velocity);

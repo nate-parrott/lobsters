@@ -23,3 +23,31 @@ export function createInitialGameState(): GameState {
     angularVelocity: 0,
   };
 }
+
+export interface TrapState {
+  inWater: boolean;
+  position?: Vec2;       // only if inWater
+  droppedAt?: number;    // timestamp when dropped (ms)
+  lobsterCount: number;  // lobsters in trap (only meaningful when on boat)
+}
+
+export interface PersistentState {
+  traps: TrapState[];
+  depositedLobsters: number;
+}
+
+export function createInitialPersistentState(): PersistentState {
+  return {
+    traps: [
+      { inWater: false, lobsterCount: 0 },
+      { inWater: false, lobsterCount: 0 },
+      { inWater: false, lobsterCount: 0 },
+      { inWater: false, lobsterCount: 0 },
+      { inWater: false, lobsterCount: 0 },
+      { inWater: false, lobsterCount: 0 },
+      { inWater: false, lobsterCount: 0 },
+      { inWater: false, lobsterCount: 0 },
+    ],
+    depositedLobsters: 0,
+  };
+}

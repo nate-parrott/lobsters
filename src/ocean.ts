@@ -34,12 +34,12 @@ export function updateOceanUV(ocean: THREE.Mesh, time: number): void {
   }
 }
 
-export function createSkyAndLighting(scene: THREE.Scene): void {
+export function createSkyAndLighting(scene: THREE.Scene): THREE.DirectionalLight {
   // Darker sky color
-  scene.background = new THREE.Color(0x4a6b7c);
+  scene.background = new THREE.Color(0x112949); // #2e3e46ff color
 
   // Darker fog
-  scene.fog = new THREE.FogExp2(0x3a5a6a, 0.01);
+  scene.fog = new THREE.FogExp2(0x112949, 0.02);
 
   // Dimmer ambient light
   const ambient = new THREE.AmbientLight(0x6688aa, 1.5);
@@ -54,11 +54,23 @@ export function createSkyAndLighting(scene: THREE.Scene): void {
   sun.shadow.mapSize.height = 2048;
   sun.shadow.camera.near = 0.5;
   sun.shadow.camera.far = 500;
-  sun.shadow.camera.left = -100;
-  sun.shadow.camera.right = 100;
-  sun.shadow.camera.top = 100;
-  sun.shadow.camera.bottom = -100;
+  const shadowSize = 50;
+  sun.shadow.camera.left = -shadowSize / 2;
+  sun.shadow.camera.right = shadowSize / 2;
+  sun.shadow.camera.top = shadowSize / 2;
+  sun.shadow.camera.bottom = -shadowSize / 2;
   scene.add(sun);
+  scene.add(sun.target);
+
+  return sun;
+}
+
+export function updateSunPosition(sun: THREE.DirectionalLight, targetX: number, targetZ: number): void {
+  // Move both sun and its target to follow the boat
+  sun.position.x = targetX + 50;
+  sun.position.z = targetZ + 50;
+  sun.target.position.x = targetX;
+  sun.target.position.z = targetZ;
 }
 
 export function createBoatSpotlight(): THREE.SpotLight {
@@ -84,7 +96,7 @@ export function updateBoatSpotlight(
 
   spotlight.position.set(
     boatX + forwardX * 2,
-    3,
+    4,
     boatZ + forwardZ * 2
   );
 
