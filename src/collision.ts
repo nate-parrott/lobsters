@@ -118,29 +118,133 @@ function getCollisionMTV(boatCorners: Vec2[], islandPolygon: Vec2[]): Vec2 | nul
   };
 }
 
-export function handleIslandCollision(state: GameState, collider: IslandCollider): void {
-  if (collider.polygon.length < 3) return;
+function getPolygonArea(polygon: Vec2[]): number {
+  let area = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % polygon.length];
+    area += p1.x * p2.z - p2.x * p1.z;
+  }
+  return area / 2;
+}
 
-  const boatCorners = getBoatCorners(state);
-  const mtv = getCollisionMTV(boatCorners, collider.polygon);
+function isPointInTriangle(p: Vec2, a: Vec2, b: Vec2, c: Vec2): boolean {
+  const v0 = { x: c.x - a.x, z: c.z - a.z };
+  const v1 = { x: b.x - a.x, z: b.z - a.z };
+  const v2 = { x: p.x - a.x, z: p.z - a.z };
 
-  if (mtv) {
-    // Push boat out of collision
-    state.position.x += mtv.x;
-    state.position.z += mtv.z;
+  const dot00 = v0.x * v0.x + v0.z * v0.z;
+  const dot01 = v0.x * v1.x + v0.z * v1.z;
+  const dot02 = v0.x * v2.x + v0.z * v2.z;
+  const dot11 = v1.x * v1.x + v1.z * v1.z;
+  const dot12 = v1.x * v2.x + v1.z * v2.z;
 
-    // Cancel velocity component into the island
-    const mtvLen = Math.sqrt(mtv.x * mtv.x + mtv.z * mtv.z);
-    if (mtvLen > 0.001) {
-      const normal = { x: mtv.x / mtvLen, z: mtv.z / mtvLen };
-      const velDot = state.velocity.x * normal.x + state.velocity.z * normal.z;
-      if (velDot < 0) {
-        state.velocity.x -= normal.x * velDot;
-        state.velocity.z -= normal.z * velDot;
+  const denom = dot00 * dot11 - dot01 * dot01;
+  if (denom === 0) return false;
+  const invDenom = 1 / denom;
+  const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+  const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+  return u >= 0 && v >= 0 && u + v <= 1;
+}
+
+function triangulatePolygon(polygon: Vec2[]): Vec2[][] {
+  if (polygon.length < 3) return [];
+
+  const triangles: Vec2[][] = [];
+  const indices = polygon.map((_, i) => i);
+  const isCCW = getPolygonArea(polygon) > 0;
+
+  const isConvex = (prev: Vec2, curr: Vec2, next: Vec2): boolean => {
+    const cross = (curr.x - prev.x) * (next.z - curr.z) - (curr.z - prev.z) * (next.x - curr.x);
+    return isCCW ? cross > 0 : cross < 0;
+  };
+
+  while (indices.length > 3) {
+    let earFound = false;
+    for (let i = 0; i < indices.length; i++) {
+      const prevIndex = indices[(i - 1 + indices.length) % indices.length];
+      const currIndex = indices[i];
+      const nextIndex = indices[(i + 1) % indices.length];
+      const prev = polygon[prevIndex];
+      const curr = polygon[currIndex];
+      const next = polygon[nextIndex];
+
+      if (!isConvex(prev, curr, next)) continue;
+
+      let hasPointInside = false;
+      for (let j = 0; j < indices.length; j++) {
+        const idx = indices[j];
+        if (idx === prevIndex || idx === currIndex || idx === nextIndex) continue;
+        if (isPointInTriangle(polygon[idx], prev, curr, next)) {
+          hasPointInside = true;
+          break;
+        }
       }
-      // Dampen on collision
-      state.velocity.x *= 0.7;
-      state.velocity.z *= 0.7;
+      if (hasPointInside) continue;
+
+      triangles.push([prev, curr, next]);
+      indices.splice(i, 1);
+      earFound = true;
+      break;
+    }
+
+    if (!earFound) {
+      break;
+    }
+  }
+
+  if (indices.length === 3) {
+    triangles.push([polygon[indices[0]], polygon[indices[1]], polygon[indices[2]]]);
+  }
+
+  return triangles;
+}
+
+function getConcaveCollisionMTV(boatCorners: Vec2[], islandPolygon: Vec2[]): Vec2 | null {
+  const triangles = triangulatePolygon(islandPolygon);
+  let bestMTV: Vec2 | null = null;
+  let bestLen = Infinity;
+
+  for (const triangle of triangles) {
+    const mtv = getCollisionMTV(boatCorners, triangle);
+    if (!mtv) continue;
+    const len = Math.sqrt(mtv.x * mtv.x + mtv.z * mtv.z);
+    if (len < bestLen) {
+      bestLen = len;
+      bestMTV = mtv;
+    }
+  }
+
+  return bestMTV;
+}
+
+export function handleIslandCollisions(state: GameState, colliders: IslandCollider[]): void {
+
+  for (const collider of colliders) {
+    if (collider.polygon.length < 3) continue;
+
+    const boatCorners = getBoatCorners(state);
+    const mtv = getConcaveCollisionMTV(boatCorners, collider.polygon);
+
+    if (mtv) {
+      console.log('Collision detected, MTV:', mtv);
+      // Push boat out of collision
+      state.position.x += mtv.x;
+      state.position.z += mtv.z;
+
+      // Cancel velocity component into the island
+      const mtvLen = Math.sqrt(mtv.x * mtv.x + mtv.z * mtv.z);
+      if (mtvLen > 0.001) {
+        const normal = { x: mtv.x / mtvLen, z: mtv.z / mtvLen };
+        const velDot = state.velocity.x * normal.x + state.velocity.z * normal.z;
+        if (velDot < 0) {
+          state.velocity.x -= normal.x * velDot;
+          state.velocity.z -= normal.z * velDot;
+        }
+        // Dampen on collision
+        state.velocity.x *= 0.7;
+        state.velocity.z *= 0.7;
+      }
     }
   }
 }

@@ -17,7 +17,7 @@ export interface InputState {
 
 export function createInitialGameState(): GameState {
   return {
-    position: { x: -10, z: 0 },
+    position: { x: -8, z: 0 },
     velocity: { x: 0, z: 0 },
     heading: Math.PI,
     angularVelocity: 0,

@@ -11,12 +11,12 @@ export interface IslandData {
   collider: Promise<IslandCollider>;
 }
 
-export function createIsland(): IslandData {
+function loadIslandModel(fileName: string): IslandData {
   const group = new THREE.Group();
 
   const colliderPromise = new Promise<IslandCollider>((resolve) => {
     const loader = new GLTFLoader();
-    loader.load(`${import.meta.env.BASE_URL}island1.glb`, (gltf) => {
+    loader.load(`${import.meta.env.BASE_URL}${fileName}`, (gltf) => {
       const model = gltf.scene;
       let hitPolygon: Vec2[] = [];
 
@@ -40,6 +40,15 @@ export function createIsland(): IslandData {
   });
 
   return { group, collider: colliderPromise };
+}
+
+export function createIslands(): IslandData[] {
+  return [
+    loadIslandModel('island1.glb'),
+    loadIslandModel('island2.glb'),
+    loadIslandModel('island3.glb'),
+    loadIslandModel('island4.glb'),
+  ];
 }
 
 function extractPolygonFromMesh(mesh: THREE.Mesh): Vec2[] {

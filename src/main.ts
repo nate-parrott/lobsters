@@ -1,10 +1,11 @@
 import * as THREE from 'three';
+import Stats from 'stats.js';
 import { createInitialGameState } from './types';
-import { createBoatMesh, updateBoatPhysics, updateBoatMesh } from './boat';
-import { createCamera, createCameraState, updateCamera, handleResize } from './camera';
+import { createBoatMesh, updateBoatPhysics, updateBoatMesh, getBoatBob } from './boat';
+import { createCamera, createCameraState, updateCamera, handleResize, toggleViewMode } from './camera';
 import { createOcean, updateOceanUV, createSkyAndLighting, createBoatSpotlight, updateBoatSpotlight } from './ocean';
-import { createIsland, IslandCollider } from './islands';
-import { handleIslandCollision } from './collision';
+import { createIslands, IslandCollider } from './islands';
+import { handleIslandCollisions } from './collision';
 import { InputManager } from './input';
 
 class Game {
@@ -18,8 +19,9 @@ class Game {
 
   private boatMesh: THREE.Group;
   private ocean: THREE.Mesh;
-  private islandCollider: IslandCollider | null = null;
+  private islandColliders: IslandCollider[] = [];
   private spotlight: THREE.SpotLight;
+  private stats: Stats;
 
   private lastTime = 0;
 
@@ -51,16 +53,23 @@ class Game {
     this.ocean = createOcean();
     this.scene.add(this.ocean);
 
-    const island = createIsland();
-    this.scene.add(island.group);
-    island.collider.then((collider) => {
-      this.islandCollider = collider;
-    });
+    const islands = createIslands();
+    for (const island of islands) {
+      this.scene.add(island.group);
+      island.collider.then((collider) => {
+        this.islandColliders.push(collider);
+      });
+    }
 
     // Create boat spotlight
     this.spotlight = createBoatSpotlight();
     this.scene.add(this.spotlight);
     this.scene.add(this.spotlight.target);
+
+    // Setup stats
+    this.stats = new Stats();
+    this.stats.showPanel(0); // 0: fps, 1: ms, 2: mb
+    document.body.appendChild(this.stats.dom);
 
     // Setup input
     this.inputManager = new InputManager();
@@ -71,12 +80,20 @@ class Game {
       handleResize(this.camera);
     });
 
+    // Handle view toggle
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyV') {
+        toggleViewMode(this.cameraState);
+      }
+    });
+
     // Start game loop
     this.lastTime = performance.now();
     this.loop();
   }
 
   private loop = (): void => {
+    this.stats.begin();
     requestAnimationFrame(this.loop);
 
     const now = performance.now();
@@ -85,6 +102,7 @@ class Game {
 
     this.update(dt);
     this.render();
+    this.stats.end();
   };
 
   private update(dt: number): void {
@@ -94,15 +112,16 @@ class Game {
     updateBoatPhysics(this.gameState, input, dt);
 
     // Handle collisions
-    if (this.islandCollider) {
-      handleIslandCollision(this.gameState, this.islandCollider);
+    if (this.islandColliders.length > 0) {
+      handleIslandCollisions(this.gameState, this.islandColliders);
     }
 
     // Update visuals
     const time = performance.now() / 1000;
     updateBoatMesh(this.boatMesh, this.gameState, time);
     updateOceanUV(this.ocean, time);
-    updateCamera(this.camera, this.cameraState, this.gameState, dt);
+    const boatY = getBoatBob(time, this.gameState.velocity);
+    updateCamera(this.camera, this.cameraState, this.gameState, boatY, dt);
     updateBoatSpotlight(
       this.spotlight,
       this.gameState.position.x,
@@ -113,6 +132,7 @@ class Game {
 
   private render(): void {
     this.renderer.render(this.scene, this.camera);
+    // console.log(this.renderer.info);
   }
 }
 

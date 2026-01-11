@@ -8,9 +8,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "three": "^0.169.0",
+    "mobile-detect": "^1.4.5",
     "nipplejs": "^0.10.2",
-    "mobile-detect": "^1.4.5"
+    "stats.js": "^0.17.0",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/three": "^0.169.0",

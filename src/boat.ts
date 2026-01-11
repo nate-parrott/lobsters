@@ -89,6 +89,8 @@ export function updateBoatMesh(
   mesh.position.z = state.position.z;
   mesh.position.y = getBoatBob(time, state.velocity);
 
+  // Apply rotations with Y (heading) last so roll/pitch are in local space
+  mesh.rotation.order = 'ZXY';
   mesh.rotation.y = state.heading;
   mesh.rotation.z = getBoatRoll(time, state.angularVelocity);
   mesh.rotation.x = getBoatPitch(state.velocity);

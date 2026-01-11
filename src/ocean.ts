@@ -42,13 +42,14 @@ export function createSkyAndLighting(scene: THREE.Scene): void {
   scene.fog = new THREE.FogExp2(0x3a5a6a, 0.01);
 
   // Dimmer ambient light
-  const ambient = new THREE.AmbientLight(0x6688aa, 1);
+  const ambient = new THREE.AmbientLight(0x6688aa, 1.5);
   scene.add(ambient);
 
   // Directional moonlight (dimmer, bluish)
-  const sun = new THREE.DirectionalLight(0x8899bb, 0.7);
-  sun.position.set(50, 100, 50);
+  const sun = new THREE.DirectionalLight(0x8899bb, 3);
+  sun.position.set(50, 150, 50);
   sun.castShadow = true;
+  sun.shadow.bias = -0.001
   sun.shadow.mapSize.width = 2048;
   sun.shadow.mapSize.height = 2048;
   sun.shadow.camera.near = 0.5;
@@ -61,8 +62,11 @@ export function createSkyAndLighting(scene: THREE.Scene): void {
 }
 
 export function createBoatSpotlight(): THREE.SpotLight {
-  const spotlight = new THREE.SpotLight(0xffffee, 4, 50, Math.PI / 6, 0.3, 1);
+  const spotlight = new THREE.SpotLight(0xffffee, 80, 50, Math.PI / 6, 0.3, 1);
   spotlight.castShadow = true;
+  spotlight.shadow.bias = -0.001;
+  spotlight.shadow.camera.near = 0.5;
+  spotlight.shadow.camera.far = 50;
   spotlight.shadow.mapSize.width = 1024;
   spotlight.shadow.mapSize.height = 1024;
   return spotlight;
