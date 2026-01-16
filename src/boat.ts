@@ -4,7 +4,7 @@ import { GameState, InputState, Vec2 } from './types';
 import { lerp } from 'three/src/math/MathUtils.js';
 
 const ACCELERATION = 8;
-const MAX_SPEED = 14;
+export const MAX_SPEED = 14;
 const DRAG = 0.98;
 const TURN_SPEED = 3;
 const TURN_DRAG = 0.92;
@@ -67,7 +67,7 @@ export function getBoatBob(time: number, velocity: Vec2): number {
   const speed = Math.sqrt(velocity.x ** 2 + velocity.z ** 2);
   const baseWave = Math.sin(time * 2) * 0.15;
   const speedWave = Math.sin(time * 4) * 0.1 * Math.min(speed / MAX_SPEED, 1);
-  return 0.4 + baseWave + speedWave; // Lift boat slightly higher
+  return 0.6 + baseWave + speedWave; // Lift boat slightly higher
 }
 
 export function getBoatRoll(time: number, angularVelocity: number): number {

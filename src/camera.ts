@@ -1,16 +1,18 @@
 import * as THREE from 'three';
 import { GameState } from './types';
+import { inverseLerp, lerp, smoothstep } from 'three/src/math/MathUtils.js';
+import { MAX_SPEED } from './boat';
 
-const CAMERA_HEIGHT = 12;
-const CAMERA_DISTANCE = 8  // Small offset behind for ~80% top-down
-const CAMERA_LOOK_AHEAD = 4;
+const CAMERA_HEIGHT = 20;
+const CAMERA_DISTANCE = 4  // Small offset behind for ~80% top-down
+const CAMERA_LOOK_AHEAD = 10;
 const CAMERA_SMOOTHING = 0.05;
 
 // Cab view constants
-const CAB_HEIGHT = 2.5;
-const CAB_FORWARD_OFFSET = -3; // Slightly back from center
-const CAB_LOOK_DISTANCE = 20;
-const CAB_VIEW_SMOOTHING = 0.05;
+// const CAB_HEIGHT = 2.5;
+// const CAB_FORWARD_OFFSET = -3; // Slightly back from center
+// const CAB_LOOK_DISTANCE = 20;
+// const CAB_VIEW_SMOOTHING = 0.05;
 
 export type ViewMode = 'overhead' | 'cab';
 
@@ -52,45 +54,34 @@ export function updateCamera(
   let targetPosition: THREE.Vector3;
   let targetLookAt: THREE.Vector3;
 
-  if (cameraState.viewMode === 'cab') {
-    // Cab view: inside the boat looking forward
-    const forwardX = Math.sin(gameState.heading);
-    const forwardZ = Math.cos(gameState.heading);
+  const speed = Math.sqrt(gameState.velocity.x ** 2 + gameState.velocity.z ** 2);
+  const lookFwd = inverseLerp(0, MAX_SPEED * 0.7, speed);
 
-    targetPosition = new THREE.Vector3(
-      gameState.position.x + forwardX * CAB_FORWARD_OFFSET,
-      boatY + CAB_HEIGHT,
-      gameState.position.z + forwardZ * CAB_FORWARD_OFFSET
-    );
+  const camDist = lerp(CAMERA_DISTANCE, 8, lookFwd);
+  const camHeight = lerp(CAMERA_HEIGHT, CAMERA_HEIGHT * 0.4, lookFwd);
+  const lookAhead = lerp(CAMERA_LOOK_AHEAD, CAMERA_LOOK_AHEAD + 10, lookFwd);
 
-    targetLookAt = new THREE.Vector3(
-      gameState.position.x + forwardX * CAB_LOOK_DISTANCE,
-      boatY + 1,
-      gameState.position.z + forwardZ * CAB_LOOK_DISTANCE
-    );
-  } else {
-    // Overhead view: behind and above the boat
-    const behindX = -Math.sin(gameState.heading) * CAMERA_DISTANCE;
-    const behindZ = -Math.cos(gameState.heading) * CAMERA_DISTANCE;
+  // Overhead view: behind and above the boat
+  const behindX = -Math.sin(gameState.heading) * camDist;
+  const behindZ = -Math.cos(gameState.heading) * camDist;
 
-    targetPosition = new THREE.Vector3(
-      gameState.position.x + behindX,
-      CAMERA_HEIGHT,
-      gameState.position.z + behindZ
-    );
+  targetPosition = new THREE.Vector3(
+    gameState.position.x + behindX,
+    camHeight,
+    gameState.position.z + behindZ
+  );
 
-    const aheadX = Math.sin(gameState.heading) * CAMERA_LOOK_AHEAD;
-    const aheadZ = Math.cos(gameState.heading) * CAMERA_LOOK_AHEAD;
+  const aheadX = Math.sin(gameState.heading) * lookAhead;
+  const aheadZ = Math.cos(gameState.heading) * lookAhead;
 
-    targetLookAt = new THREE.Vector3(
-      gameState.position.x + aheadX,
-      0,
-      gameState.position.z + aheadZ
-    );
-  }
+  targetLookAt = new THREE.Vector3(
+    gameState.position.x + aheadX,
+    0,
+    gameState.position.z + aheadZ
+  );
 
   // Smooth interpolation
-  const smoothingFactor = cameraState.viewMode === 'cab' ? CAB_VIEW_SMOOTHING : CAMERA_SMOOTHING;
+  const smoothingFactor = CAMERA_SMOOTHING;
   const smoothFactor = 1 - Math.pow(1 - smoothingFactor, dt * 60);
 
   cameraState.currentPosition.lerp(targetPosition, smoothFactor);

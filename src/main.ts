@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import Stats from 'stats.js';
 import { createInitialGameState, PersistentState, Vec2 } from './types';
 import { createBoatMesh, updateBoatPhysics, updateBoatMesh, getBoatBob } from './boat';
-import { createCamera, createCameraState, updateCamera, handleResize, toggleViewMode } from './camera';
+import { createCamera, createCameraState, updateCamera, handleResize } from './camera';
 import { createOcean, updateOceanUV, createSkyAndLighting, updateSunPosition, createBoatSpotlight, updateBoatSpotlight } from './ocean';
 import { createIslands, IslandCollider } from './islands';
 import { handleIslandCollisions } from './collision';
@@ -47,6 +47,7 @@ class Game {
   private trapManager: TrapManager;
   private persistentState: PersistentState;
   private portPolygon: Vec2[] = [];
+  private portCenter: Vec2 | null = null;
   private atPort = false;
   private nearTrapIndex: number | null = null;
 
@@ -97,10 +98,10 @@ class Game {
     this.scene.add(this.spotlight);
     this.scene.add(this.spotlight.target);
 
-    // Setup stats
+    // Setup stats (commented out temporarily)
     this.stats = new Stats();
     this.stats.showPanel(0); // 0: fps, 1: ms, 2: mb
-    document.body.appendChild(this.stats.dom);
+    // document.body.appendChild(this.stats.dom);
 
     // Load persistent state
     this.persistentState = loadPersistentState();
@@ -108,6 +109,12 @@ class Game {
     // Load port zone
     loadPortZone().then((polygon) => {
       this.portPolygon = polygon;
+      // Calculate port center
+      if (polygon.length > 0) {
+        const sumX = polygon.reduce((acc, v) => acc + v.x, 0);
+        const sumZ = polygon.reduce((acc, v) => acc + v.z, 0);
+        this.portCenter = { x: sumX / polygon.length, z: sumZ / polygon.length };
+      }
     });
 
     // Setup trap manager
@@ -115,7 +122,6 @@ class Game {
 
     // Setup UI
     this.ui = new GameUI({
-      onToggleView: () => toggleViewMode(this.cameraState),
       onReelToggle: () => this.handleReelToggle(),
     });
 
@@ -130,13 +136,6 @@ class Game {
       const size = getClampedSize(window.innerWidth, window.innerHeight);
       this.renderer.setSize(size.width, size.height, false);
       handleResize(this.camera);
-    });
-
-    // Handle view toggle
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyV') {
-        toggleViewMode(this.cameraState);
-      }
     });
 
     // Start game loop
@@ -190,6 +189,9 @@ class Game {
 
     // Update trap visuals
     this.trapManager.update(this.persistentState, time);
+
+    // Update minimap
+    this.updateMinimap();
 
     // Update port/trap state for UI
     this.updateTrapState();
@@ -326,6 +328,24 @@ class Game {
       .reduce((sum, t) => sum + t.lobsterCount, 0);
     const total = this.persistentState.depositedLobsters + onBoat;
     this.ui.setLobsterCount(total);
+  }
+
+  private updateMinimap(): void {
+    // Collect dropped trap positions
+    const droppedTraps = this.persistentState.traps
+      .filter((t) => t.inWater && t.position)
+      .map((t) => t.position!);
+
+    // Collect island polygons
+    const islandPolygons = this.islandColliders.map((c) => c.polygon);
+
+    this.ui.updateMinimap({
+      boatPosition: this.gameState.position,
+      boatHeading: this.gameState.heading,
+      droppedTraps,
+      islandPolygons,
+      portCenter: this.portCenter,
+    });
   }
 
   private render(): void {

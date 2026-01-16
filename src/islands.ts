@@ -49,6 +49,7 @@ export function createIslands(): IslandData[] {
     loadIslandModel('island3.glb'),
     loadIslandModel('island4.glb'),
     loadIslandModel('carrier.glb'),
+    loadIslandModel('island5.glb'),
   ];
 }
 

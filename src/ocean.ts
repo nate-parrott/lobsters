@@ -39,7 +39,7 @@ export function createSkyAndLighting(scene: THREE.Scene): THREE.DirectionalLight
   scene.background = new THREE.Color(0x112949); // #2e3e46ff color
 
   // Darker fog
-  scene.fog = new THREE.FogExp2(0x112949, 0.02);
+  scene.fog = new THREE.FogExp2(0x112949, 0.01);
 
   // Dimmer ambient light
   const ambient = new THREE.AmbientLight(0x6688aa, 1.5);
